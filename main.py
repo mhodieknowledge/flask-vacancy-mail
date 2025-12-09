@@ -11,7 +11,7 @@ app = Flask(__name__)
 # GitHub configuration
 GITHUB_TOKEN = "your_github_token"  # Replace with your GitHub personal access token
 GITHUB_REPO = "vacancy-updates"  # Replace with your GitHub repo name
-GITHUB_USERNAME = "your_github_username"  # Replace with your GitHub username
+GITHUB_USERNAME = "mhodieknowledge"  # Updated GitHub username
 GITHUB_API_URL = f"https://api.github.com/repos/{GITHUB_USERNAME}/{GITHUB_REPO}/contents/"
 
 # List of user-agent strings for rotation
@@ -22,14 +22,12 @@ USER_AGENTS = [
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36"
 ]
 
-# Rotate headers by randomly picking a user-agent
 def get_headers():
     return {
         "User-Agent": random.choice(USER_AGENTS),
         "Accept-Language": "en-US,en;q=0.9"
     }
 
-# Function to scrape a specific page
 def scrape_jobs(page_url):
     response = requests.get(page_url, headers=get_headers())
     if response.status_code != 200:
@@ -64,15 +62,13 @@ def scrape_jobs(page_url):
             elif "icon-material-outline-business-center" in item.i["class"]:
                 job_data["job_type"] = item.text.strip()
 
-        # Avoid duplicate jobs based on the link
         if job_data not in jobs:
             jobs.append(job_data)
 
-        time.sleep(random.uniform(0.5, 1.5))  # Avoid rate limiting
+        time.sleep(random.uniform(0.5, 1.5))
 
     return jobs
 
-# Function to fetch existing JSON file from GitHub
 def fetch_existing_file(file_path):
     url = GITHUB_API_URL + file_path
     headers = {"Authorization": f"token {GITHUB_TOKEN}"}
@@ -81,11 +77,10 @@ def fetch_existing_file(file_path):
     if response.status_code == 200:
         file_data = response.json()
         content = base64.b64decode(file_data["content"]).decode("utf-8")
-        sha = file_data["sha"]  # GitHub requires the SHA for file updates
+        sha = file_data["sha"]
         return json.loads(content), sha
     return None, None
 
-# Function to upload JSON to GitHub
 def upload_to_github(file_path, file_name, content, sha=None):
     url = GITHUB_API_URL + file_path + "/" + file_name
     headers = {
@@ -93,20 +88,17 @@ def upload_to_github(file_path, file_name, content, sha=None):
         "Content-Type": "application/json"
     }
 
-    # Prepare file content
     data = {
         "message": f"Update {file_name}",
         "content": base64.b64encode(content.encode("utf-8")).decode("utf-8"),
-        "branch": "main"  # Replace with your branch if not main
+        "branch": "main"
     }
     if sha:
         data["sha"] = sha
 
-    # Send PUT request to GitHub
     response = requests.put(url, headers=headers, json=data)
     return response.json()
 
-# Flask route to scrape and save data
 @app.route("/scrape/<page>.json", methods=["GET"])
 def scrape_page(page):
     pages = {
@@ -120,18 +112,14 @@ def scrape_page(page):
     if page not in pages:
         return jsonify({"error": "Page not found"}), 404
 
-    # Scrape the page
     new_jobs = scrape_jobs(pages[page])
     if not new_jobs:
         return jsonify({"error": "Failed to scrape the page"}), 500
 
-    # Fetch existing file from GitHub
     existing_jobs, sha = fetch_existing_file("vacancy-updates/" + page + ".json")
 
-    # Replace existing data with new data
     updated_jobs = new_jobs
 
-    # Save to JSON file
     file_name = f"{page}.json"
     json_content = json.dumps(updated_jobs, ensure_ascii=False, indent=4)
     response = upload_to_github("vacancy-updates", file_name, json_content, sha)
