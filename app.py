@@ -5,12 +5,13 @@ import json
 import time
 import random
 import base64
+import os
 
 app = Flask(__name__)
 
 # GitHub configuration
-GITHUB_TOKEN = "your_github_token"  # Replace with your GitHub personal access token
-GITHUB_REPO = "vacancy-updates"  # Replace with your GitHub repo name
+GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN")  # Replace with your GitHub personal access token
+GITHUB_REPO = "flask-vacancy-mail"  # Replace with your GitHub repo name
 GITHUB_USERNAME = "mhodieknowledge"  # Updated GitHub username
 GITHUB_API_URL = f"https://api.github.com/repos/{GITHUB_USERNAME}/{GITHUB_REPO}/contents/"
 
